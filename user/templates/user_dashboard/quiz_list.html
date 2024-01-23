@@ -1,0 +1,50 @@
+{% extends "user_dashboard/index4.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Quiz List</h1>
+    {% include "user_dashboard/head.html" with active='new' %}
+    <form method="get" action="{% url 'quiz_list' %}" class="mb-3">
+        <label for="level">Select Level:</label>
+        <select name="level" id="level">
+            <option value="" {% if not selected_level %}selected{% endif %}>All</option>
+            <option value="easy" {% if selected_level == 'easy' %}selected{% endif %}>Easy</option>
+            <option value="medium" {% if selected_level == 'medium' %}selected{% endif %}>Medium</option>
+            <option value="hard" {% if selected_level == 'hard' %}selected{% endif %}>Hard</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </form>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>Quiz</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for course in courses %}
+                <tr>
+                    <td>{{ course.name }}</td>
+                    <td>
+                        <ul>
+                            {% for quiz in quizzes %}
+                            {% if quiz.course == course %}
+                            {% if not selected_level or quiz.level == selected_level %}
+                            <li>
+                                <a href="{% url 'quiz_start' quiz_id=quiz.id %}">{{ quiz.name }} - Level: {{ quiz.get_level_display }}</a>
+                            </li>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </ul> 
+                    </td>
+                    <td>
+                        <!-- Add any other actions or buttons here -->
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock content %}

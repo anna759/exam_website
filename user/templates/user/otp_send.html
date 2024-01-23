@@ -1,0 +1,15 @@
+{% extends "user/index.html" %}
+{% block content %}
+<form method="post" action="{% url 'verify_otp' %}">
+  {% csrf_token %}
+  <div class="col-lg-7 px-5 pt-5">
+  <input type="hidden" name="user_id" value="{{ user_id }}">
+  <input type="hidden" name="username" value="{{ username}}">
+  <input type="hidden" name="password" value="{{ password }}">
+  
+  <label for="otp">Enter OTP:</label>
+  <input type="text" name="otp" required>
+  <button type="submit">Submit OTP</button>
+  </div>
+</form>
+{% endblock %}

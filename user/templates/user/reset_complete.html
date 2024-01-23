@@ -1,0 +1,8 @@
+{% extends "user/index.html" %}
+{% block content %}
+   <div class="alert alert-infor mt-5">
+         Your password has been reset
+
+   </div>
+   <a href="{% url 'login' %}">Sign in here</a>
+{% endblock content %}

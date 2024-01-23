@@ -1,0 +1,96 @@
+{% extends "dashboard/index2.html" %}
+{% block content %}
+  <div class="container mt-5">
+    <h2>Create Questions</h2>
+
+   
+    <form method="post" action="{% url 'add_question' quiz_pk=quiz.pk %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="quiz">Select Quiz:</label>
+        <input type="text" class="form-control" value="{{ quiz.name }}" readonly>
+      </div>
+
+      <div class="form-group">
+        {{ form.text.label_tag }}
+        {{ form.text }}
+      </div>
+
+      {{ formset.management_form }}
+      
+      <table class="table table-bordered mt-3">
+        <thead>
+          <tr>
+            <th>Answer</th>
+            <th>Correct</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for form in formset.forms %}
+            <tr>
+              <td>{{ form.text }}</td>
+              <td>{{ form.is_correct }}</td>
+              <td>{{ form.DELETE }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+   
+
+
+
+
+      <button type="submit" class="btn btn-success mt-3">Add Question</button>
+    </form>
+    <hr>
+
+    {% if quiz.questions.exists %}
+      <h3>Existing Questions and Answers</h3>
+      
+      {% for question in quiz.questions.all %}
+        <table class="table table-bordered mt-3">
+          <thead>
+            <tr>
+              <th colspan="3">Question: {{ question.text }}</th>
+           
+      
+          
+            </tr>
+            <tr>
+              <th>Answer</th>
+              <th>Correct</th>
+            <th>Edit</th>
+            <th>Delete</th>
+             
+            </tr>
+          </thead>
+          <tbody>
+            {% for answer in question.answers.all %}
+              <tr>
+                <td>{{ answer.text }}</td>
+               
+                <td>{{ answer.is_correct }}</td>
+                <td><a href="{% url 'edit_answer' quiz_pk=quiz.pk question_pk=question.pk answer_pk=answer.pk %}" class="btn btn-warning">Edit</a></td>
+              <td>{{ form.DELETE }}</td>
+               
+            </tr>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        
+        <form method="post" action="{% url 'delete_question' quiz_pk=quiz.pk question_pk=question.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Delete Question</button>
+        </form>
+         <a href="{% url 'edit_question' quiz_pk=quiz.pk question_pk=question.pk %}" class="btn btn-warning mt-3">Edit Question</a>
+         {% endfor %}
+    {% else %}
+      <p>No existing questions for this quiz.</p>
+    {% endif %}
+ 
+  </div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "dashboard/index2.html" %}
+
+
+{% block content %}
+  <div class="container mt-5">
+    <h2>Student Management System</h2>
+    <table class="table table-bordered mt-3">
+      <form method="get" action="{% url 'alluser' %}">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="Search users" name="q" value="{{ request.GET.q }}">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="submit">Search</button>
+            </div>
+        </div>
+    </form>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>User Type</th>
+          <th>Email</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if users %}
+          {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.username }}</td>
+              <td>
+                {% if user.is_lectuer %}
+                  <p>Admin</p>
+                {% else %}
+                  <p>Student</p>
+                {% endif %}
+              </td>
+              <td>{{ user.email }}</td>
+              <td>
+                <a href="{% url 'delete_user' user.pk  %}">
+                  <button type="button" class="btn btn-danger">Delete</button>
+              </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="text-center">No users found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

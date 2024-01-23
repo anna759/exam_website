@@ -1,0 +1,69 @@
+{% extends "user_dashboard/index4.html" %}
+
+{% block content %}
+<style>
+    .disable-select {
+        user-select: none;
+    }
+    #timer {
+        font-size: 20px;
+        font-weight: bold;
+        color: red;
+    }
+</style>
+
+<script>
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+    });
+</script>
+<script>
+    const quizTimeLimit = 180;  // 30 minutes
+     const quizStartTime = new Date().getTime();
+     const quizEndTime = quizStartTime + quizTimeLimit * 1000;
+  
+     function updateTimer() {
+         const currentTime = new Date().getTime();
+         const remainingTime = Math.max(0, quizEndTime - currentTime);
+  
+         const minutes = Math.floor(remainingTime / (60 * 1000));
+         const seconds = Math.floor((remainingTime % (60 * 1000)) / 1000);
+  
+         // Update the 'timer' element with the remaining time
+         document.getElementById('timer').innerHTML = `${minutes}:${seconds}`;
+  
+         if (currentTime > quizEndTime) {
+             // Redirect to quiz results when time is up
+             window.location.href = '{% url "quiz_results" quiz.id %}';
+         } else {
+             // Update the timer every second
+             setTimeout(updateTimer, 1000);
+         }
+     }
+  
+     // Start the timer
+     window.onload = updateTimer;
+  </script>
+
+<h1>{{ quiz.name }} Quiz</h1>
+<div>Time Left: <span id="timer"></span></div>
+
+{% if questions %}
+
+    <form method="post" action="{% url 'question_detail' quiz_id=quiz.id question_id=questions.0.id %}">
+        {% csrf_token %}
+        
+        <h2>Question 1:</h2>
+        <p class="disable-select">{{ questions.0.text }}</p>
+        {% for answer in questions.0.answers.all %}
+            <label class="disable-select">
+                <input type="radio" name="chosen_answer" value="{{ answer.id }}" required>
+                {{ answer.text }}
+            </label><br>
+        {% endfor %}
+        <button id="next-button" data-next-question-id="{{ next_question_id }}">Next</button>
+    </form>
+{% else %}
+    <p>No questions available for this quiz.</p>
+{% endif %}
+{% endblock content %}

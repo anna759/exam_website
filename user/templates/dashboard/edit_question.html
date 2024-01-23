@@ -1,0 +1,13 @@
+{% extends "dashboard/index2.html" %}
+{% block content %}
+  <div class="container mt-5">
+    <h2>Edit Question for Quiz: {{ quiz.name }}</h2>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary">Update Question</button>
+      <a href="{% url 'create_question' quiz_pk=quiz.pk %}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+{% endblock %}

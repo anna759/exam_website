@@ -1,0 +1,261 @@
+{% extends "user/index.html" %}
+{% load static %}
+
+{% block content %}
+
+
+  <section class="bg-primary-subtle text-dark p-3 text-center text-sm-start ">
+    <div class="container">
+        <div class="d-sm-flex  alight-items-center justify-content-between">
+            <div >
+                <h1 class=" mt-5" >Become a Member</h1>
+                <p class="lead my-4">
+                    We believe in empowering individuals through education and evaluation. Our platform offers a comprehensive collection of exams across various subjects and disciplines, catering to students, professionals, and lifelong learners alike
+                </p>
+                <a href="">
+                    <button class="btn btn-primary btn-sm">Sign Up</button>
+                </a>
+                <a href="{%  url 'login' %}">
+                <button class="btn btn-primary btn-sm"> Log in </button>
+                </a>
+            </div>
+           
+            <img style="max-width: 30% "class=" img-fluid " src="{% static 'img/product-Hassle.png' %}" alt=""/>
+        </div>
+    </div>
+  </section>
+  <section class="bg-primary text-light p-2   text-center ">
+    <div class="container">
+        <div class="d-md-flex justify-content-between alight-items-center">
+            <h5 class="mb-8 mb-md-0 ">What do you want to search?</h3>
+                <form class="d-flex" role="search">
+                    <input class="form-control " style="width: 350px;"type="search" placeholder="Search" aria-label="Search">
+                    <button class="btn btn-primary " type="submit">Search</button>
+                  </form>
+        </div>
+    </div>
+  </section>
+  <section class="p-5">
+    <div class="container">
+        <div class="row text-center g-4">
+            <div class="col-md">
+                <div class="bg-primary-subtle text-dark">
+                    <div class="card-body text-center">
+                        <div class="h1 mb-3">
+                            <a class="btn btn-outline-info" href="#ceh">
+                                
+                                
+                                <img style="max-width: 30% "class=" img-fluid " src="{% static 'img/Logo-CEH-removebg-preview.png' %}" alt=""/>
+                                
+                            </a>
+                        
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="col-md">
+                <div class="  text-dark">
+                    <div class="bg-primary-subtle  card-body text-center" >
+                        <div class="h1 mb-3">
+                    
+                            <a class="btn btn-outline-info" href="#ceh">
+                                
+                                
+                                <img style="max-width: 55% "class=" img-fluid " src="{% static 'img/R__2_-removebg-preview.png' %}" alt=""/>
+                                
+                            </a>
+                        
+                        </div>
+                       
+                    </div>
+                </div>
+            </div>
+            <div class="col-md">
+                <div class="  text-dark" >
+                    <div class=" bg-primary-subtle card-body text-center" >
+                        <div class="h1 mb-1 ">
+                            <a class="btn btn-outline-info " href="#ceh">
+                                
+                                
+                                <img style="width: 50% "class=" img-fluid  " src="{% static 'img/chh-removebg-preview.png' %}" alt=""/>
+                                
+                            </a>
+                        
+                        </div>
+                       
+                    </div>
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+  </section>
+  <section id="learn" class="p-5">
+    <div class="container bg-info p-5">
+        <div class="row alight-items-center justify-content-between " >
+            <div class=" col-md">
+                <img src="{% static 'img/banner.png' %}" class="img-fluid" style="max-width: 100%;" alt="">
+            </div>
+                <div class=" col-md-7 text-light">
+                
+                    <h2>
+                        What we can do?
+                    </h2>
+                
+                    <div class=" d-sm-flex col-8 ">
+                        
+                            
+                                <img src="{% static 'img/exam1-removebg-preview.png' %}" class="img-fluid " style="max-width: 20%;" alt="">
+                                <p >
+                                        include practice quizzes and exams to help reinforce your learning
+                                </p>  
+                          
+                    </div>
+                    <div class=" d-sm-flex col-9  ">
+                        
+                            
+                            
+                                <img src="{% static 'img/dictionary-clipart-book-index-11.png' %}" class="img-fluid " style="max-width: 17%;" alt="">
+                                <p >
+                                    include learning materials ,practice exercises in various subject and online courese
+                                </p>  
+                            
+                    </div>
+                    <div class=" d-sm-flex col-12  ">
+                        
+                            
+                                <img src="{% static 'img/R.png' %}" class="img-fluid " style="max-width: 12%;" alt="">
+                                <p >
+                                    include learning materials ,practice exercises in various subject and online courese
+                                </p>  
+                    </div>
+                            
+                 </div>
+            
+        </div>
+       
+    </div>
+  </section>
+  <section id=" instructor"class="p-5 bg-primary-subtle">
+    <div class="container ">
+        <h2 class="text-center text-white">Our staffs</h2>
+        <p class="lead text-center text-white mb-5 ">
+            These are the manin ones who built this business
+        </p>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-lgiht">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/OIP__2_-removebg-preview.png' %}" class="rounded-circle mb-3" style="max-width: 50%;" alt="">
+                        <h4 class="card-title mb-3">Zulkifli Bin Jalil
+                            </h4>
+                        <p class="card-text">
+                            Zul is an experienced Cyber Security Manager with over 15 years of experience in the cybersecurity field. With expertise in managing security projects, developing, and implementing security polices and procedures
+                        </p>
+                        <a href="#"><i class="bi bi-twitter text-dark mx-1"></i></a>
+                        <a href="#"><i class="bi bi-instagram text-dark mx-1"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-lgiht">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/kpst.png' %}" class="rounded-circle mb-3" style="max-width: 50%;" alt="">
+
+                        <h4 class="card-title mb-3">Kyi Phyu Shin Thant
+                            </h4>
+                        <p class="card-text">
+                            Kyi Phyu is an experienced Cyber Security Manager with over 15 years of experience in the cybersecurity field. With expertise in managing security projects, developing, and implementing security polices and procedures
+                        </p>
+                        <a href="#"><i class="bi bi-twitter text-dark mx-1"></i></a>
+                        <a href="#"><i class="bi bi-instagram text-dark mx-1"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-lgiht">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/user_m_photo.png' %}" class="rounded-circle mb-3" style="max-width: 50%;" alt="">
+                        <h4 class="card-title mb-3">Moe Myint Maung
+                            </h4>
+                        <p class="card-text">
+                             Moe Myint Maung is an experienced Cyber Security Manager with over 15 years of experience in the cybersecurity field. With expertise in managing security projects, developing, and implementing security polices and procedures
+                        </p>
+                        <a href="#"><i class="bi bi-twitter text-dark mx-1"></i></a>
+                        <a href="#"><i class="bi bi-instagram text-dark mx-1"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-lgiht">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/maa.jpeg' %}" class="rounded-circle mb-3" style="max-width: 50%;" alt="">
+                        <h4 class="card-title mb-3">Toe Wai Hlyan
+                            </h4>
+                        <p class="card-text">
+                            Kyi Phyu is an experienced Cyber Security Manager with over 15 years of experience in the cybersecurity field. With expertise in managing security projects, developing, and implementing security polices and procedures
+                        </p>
+                        <a href="#"><i class="bi bi-twitter text-dark mx-1"></i></a>
+                        <a href="#"><i class="bi bi-instagram text-dark mx-1"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light ">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/ano.png' %}" class="rounded-circle mb-3" style="max-width: 20%;" alt="">
+                        <h4 class="card-title mb-3">Khaung Myat San
+                            </h4>
+                        <p class="card-text">
+                            KMS  is an experienced Cyber Security Manager with over 15 years of experience in the cybersecurity field. With expertise in managing security projects, developing, and implementing security polices and procedures
+                        </p>
+                        <a href="#"><i class="bi bi-twitter text-dark mx-1"></i></a>
+                        <a href="#"><i class="bi bi-instagram text-dark mx-1"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light ">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/ano.png' %}" class="rounded-circle mb-3" style="max-width: 20%;" alt="">
+                        <h4 class="card-title mb-3"> Kyaw Zin Latt
+                            </h4>
+                        <p class="card-text">
+                            KZL is an experienced Cyber Security Manager with over 15 years of experience in the cybersecurity field. With expertise in managing security projects, developing, and implementing security polices and procedures
+                        </p>
+                        <a href="#"><i class="bi bi-twitter text-dark mx-1"></i></a>
+                        <a href="#"><i class="bi bi-instagram text-dark mx-1"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+                
+            
+       
+       
+    </div>
+</section>
+<section id="social-media">
+<div class="container text-center">
+    <p> FIND US ON SOCIAL MEDIA</p>
+    <a href="#"><i class="bi bi-twitter text-dark mx-3 display-5"></i></a>
+    <a href="#"><i class="bi bi-instagram text-dark mx-3 display-5"></i></a>
+    <a href="#"><i class="bi bi-facebook text-dark mx-3 display-5"></i></a>
+    <a href="#"><i class="bi bi-linkedin text-dark mx-3 display-5"></i></a>
+</div>
+</section>
+<footer class="p-2 bg-dark text-white text-center position-relative">
+    <div class="container">
+        <p class="lead">Coypright &copy;2024 1learn1cert</p>
+        <a href="#" class="position-absolute bottom-0 end-0 p-2">
+            <i class="bi bi-arrow-up-circle h1"></i>
+        </a>
+    </div>
+</footer>
+
+
+{% endblock content %}

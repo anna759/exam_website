@@ -1,0 +1,14 @@
+{% extends "dashboard/index2.html" %}
+{% block content %}
+  <div class="container mt-5">
+    <h2>Delete Question</h2>
+
+    <p>Are you sure you want to delete the question and its answers?</p>
+
+    <form method="post" action="{% url 'delete_question_confirm' quiz_pk=quiz.pk question_pk=question.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Yes, delete</button>
+      <a href="{% url 'add_question' quiz_pk=quiz.pk %}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+{% endblock %}

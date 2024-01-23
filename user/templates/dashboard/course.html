@@ -1,0 +1,55 @@
+{% extends "dashboard/index2.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Input Course Information</h2>
+  
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      
+      <!-- Course Name -->
+      <div class="form-group">
+        <ol class="breadcrumb">
+                             
+            <li class="breadcrumb-item">
+                <a href="">Register New Course</a>
+            </li>
+            
+        </ol>
+        <label for="id_name">Course Name:</label>
+        <input type="text" class="form-control" id="id_name" name="name" required>
+        <div class="row">
+                <div class="col"><label>Course Color Code, Default Color #007bff</label><br>
+                  <input type="text" name="color">        
+            </div> 
+      </div>
+  
+      <!-- Other Course Fields (Add as needed) -->
+  
+      <!-- Submit Button -->
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <h2 class="mt-4">List of Courses</h2>
+
+    {% if courses %}
+      <table class="table mt-4">
+        <thead>
+          <tr>
+            <th scope="col">Course Name</th>
+            <th scope="col">Course Color</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for course in courses %}
+            <tr>
+              <td>{{ course.name }}</td>
+              <td>{{ course.color }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>None</p>
+    {% endif %}
+  </div>
+{% endblock %}
