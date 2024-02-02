@@ -17,20 +17,27 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include    
 from django.contrib.auth import views as auth_views
-
-
+from user import views 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('user.urls')),
     path('', include('learn.urls')),
     path('', include('learner.urls')),
-    path('password-reset/',auth_views.PasswordResetView.as_view(
-             template_name='user/password_reset.html'),name='password_reset'),
-    path('password-reset/done/',auth_views.PasswordResetDoneView.as_view(template_name='user/password_reset_done.html'),name='password_reset_done'),
-    path('password-reset-confirm/<uidb64>/<token>/',auth_views.PasswordResetConfirmView.as_view(template_name='user/reset_confirm.html'),name='password_reset_confirm'),
-    path('password-reset-complete/',auth_views.PasswordResetCompleteView.as_view(template_name='user/reset_complete.html'),name='password_reset_complete'),
+    #path('password-reset/',views.CustomPasswordResetView.as_view(
+             #template_name='user/password_reset_email.html'),name='password_reset'),
    
+    path('password-reset/done/',auth_views.PasswordResetDoneView.as_view
+         (template_name='user/password_reset_done.html'),name='password_reset_done'),
+
+    #path('password-reset-confirm/<uidb64>/<token>/',auth_views.PasswordResetConfirmView.as_view
+         
+        #(template_name='user/reset_confirm.html'),name='password_reset_confirm'),
+    #path('password-reset-confirm/<uidb64>/<token>/<email>/<username>/', views.CustomPasswordResetConfirmView.as_view(template_name='user/reset_confirm.html'), name='custom_password_reset_confirm'),
+    path('password-reset-complete/',auth_views.PasswordResetCompleteView.as_view
+         (template_name='user/reset_complete.html'),name='password_reset_complete'),
+
+    path('accounts/', include('allauth.urls')),
     #path('account/locked/',login_blocked, name='locked_out'),
 ]
 

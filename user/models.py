@@ -6,7 +6,7 @@ from embed_video.fields import EmbedVideoField
 from django.utils import timezone
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
-
+from django.db import migrations, models
 class Usercutsom(AbstractUser):
     
     is_learner = models.BooleanField(default=False)
@@ -15,7 +15,11 @@ class Usercutsom(AbstractUser):
     email_verified = models.BooleanField(default=False)
     otp_secret = models.CharField(max_length=16, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
+    is_logged_in = models.BooleanField(default=False)
+    token = models.CharField(max_length=100, null=True)
+    created_token=models.DateTimeField(auto_now_add=True)
 
+    
 class profile(models.Model):
     user =models.OneToOneField(Usercutsom,on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.png',upload_to='profile_pics')
@@ -99,22 +103,42 @@ class Answer(models.Model):
         verbose_name_plural = 'Answers'
 
 
-
+ 
 class User_Answer(models.Model):
     user = models.ForeignKey(Usercutsom, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     chosen_answer = models.ForeignKey(Answer, on_delete=models.CASCADE, null=True, blank=True)
+    attempt_number = models.PositiveIntegerField(default=1)
     user_mark = models.DecimalField('User Mark', max_digits=5, decimal_places=2, null=True, blank=True)
+    is_bookmarked = models.BooleanField(default=False)
+    total_mark = models.FloatField(null=True, blank=True)
 
-class UserQuizProgress(models.Model):
+class QuizAttempt(models.Model):
     user = models.ForeignKey(Usercutsom, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-    current_question_index = models.IntegerField(default=0)
-   
+    attempt_number = models.PositiveIntegerField(default=1)
+    score = models.PositiveIntegerField(default=0)
+    total_questions = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"{self.user.username}'s progress in {self.quiz.name}"
+        return f"{self.user.username}'s attempt {self.attempt_number} on {self.quiz.name}"
 
+    def calculate_score(self):
+        correct_answers = User_Answer.objects.filter(
+            quiz=self.quiz,
+            user=self.user,
+            attempt_number=self.attempt_number,
+            chosen_answer__is_correct=True
+        ).count()
+        self.score = correct_answers
+        self.total_questions = self.quiz.questions.count()
+        self.save()
+        
+    def save(self, *args, **kwargs):
+        # Calculate total mark based on the total number of questions in the quiz
+        total_mark = self.quiz.questions.count()  # Assuming 'quiz' is a foreign key in UserAnswer
+        self.total_mark = total_mark
+        super().save(*args, **kwargs)
 Usercutsom._meta.get_field('groups').remote_field.related_name = 'usercutsom_groups'
 Usercutsom._meta.get_field('user_permissions').remote_field.related_name = 'usercutsom_user_permissions'
 

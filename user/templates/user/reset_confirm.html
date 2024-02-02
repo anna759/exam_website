@@ -13,18 +13,33 @@
                 
                 </div>
                 <div class="col-lg-7 px-5 pt-5 mt-5 ">
-                    <h2>1learn1cert</h1>
+                    <h2>Examwebsite</h1>
                     <h5> Reset Password</h5>
-                    <form>
-                        {{ form|crispy }}
-                        <div class="form-row">
-                            <div class="col-lg-7">
-                               <button type="buttom" class="btn1">Reset Password</button>
+                
+                         
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="text" name="new_password"  class="form-control">
                                
-                             </div>
                             </div>
-                        </div>
-                    </form>
+                    
+                    
+                    
+                            <div class="form-group">
+                                <label for="password">Re confirm password</label>
+                                <input type="text" name="reconfirm_password"   class="form-control">
+                               
+                            </div>
+                    
+                    
+                            <input type="hidden" name="user_id" value="{{user_id}}">
+                            
+                           
+                            <button class="btn bg-primary" type="submit">Submit</button>
+                    
+                        </form>
+                    </div>
+                    
                 </div>
                 
                 

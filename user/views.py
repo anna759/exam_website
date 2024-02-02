@@ -8,17 +8,24 @@ from django.db import models
 from django import forms
 from django.http import HttpResponseServerError
 import time
+import uuid
+
+from django.db.models import Q
 import math
+from allauth.socialaccount.models import SocialAccount
+from django.contrib.sessions.models import Session
 from django.core.validators import validate_email
 from django.db.models import Avg, Count
 from django.forms.models import inlineformset_factory
 from django.urls import reverse_lazy
-from .add import LearnerSignUpForm,AdminSignUpForm,Infoupdateform,Profileupdateform,Question_Form,AnswerFormSet,OTPVerificationForm
+from .add import LearnerSignUpForm,AdminSignUpForm,Infoupdateform,Profileupdateform,Question_Form,AnswerFormSet,OTPVerificationForm,CustomPasswordResetForm
 from django.views.generic.edit import CreateView,DeleteView,UpdateView
-from user.models import Learner, Usercutsom , profile,Course,Quiz,Question,Answer,User_Answer,UserQuizProgress
+from user.models import Learner, Usercutsom , profile,Course,Quiz,Question,Answer,User_Answer,QuizAttempt
 from django.contrib.auth import login,authenticate,get_user_model,logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import auth
+from allauth.account.forms import SignupForm
+from allauth.socialaccount.forms import SignupForm as SocialSignupForm
 from django import template
 from django.contrib import messages
 from django.shortcuts import render
@@ -49,26 +56,34 @@ import random
 from validate_email_address import validate_email
 import dns.resolver
 import threading
+from django.http import HttpResponseBadRequest
+from django.template import loader
+from django.contrib.auth.views import PasswordResetView,PasswordResetConfirmView
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-
+from django.contrib.auth import views as auth_views
 from datetime import timedelta,datetime
 from django.utils import timezone
+
+
+def get_user_by_username_or_email(username_or_email):
+    User = get_user_model()
+    try:
+        # Try to get the user by username
+        return User.objects.get(username=username_or_email)
+    except User.DoesNotExist:
+        try:
+            # If not found, try to get the user by email
+            return User.objects.get(email=username_or_email)
+        except User.DoesNotExist:
+            return None
+
+
 User = get_user_model()
 
 
-
-def has_valid_mx_records(email):
-    try:
-        domain = email.split('@')[1]
-        answers = dns.resolver.query(domain, 'MX')
-        return len(answers) > 0
-    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers) as e:
-        print(f"Error checking MX records: {e}")
-        return False
-    
 def send_email(user,request):
     current_site = get_current_site(request)
     email_subject = 'Activate Your Account to log in'
@@ -80,24 +95,8 @@ def send_email(user,request):
 
     })
     
-    
-   
-    #email = EmailMessage(subject=email_subject, body=email_body,to=[user.email])
-    
-    
-   
     email = EmailMessage(subject=email_subject, body=email_body, to=[user.email])
-    email.send()
-   
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    email.send() 
     
 def active_user(request,uidb64,token):
     try:
@@ -113,27 +112,13 @@ def active_user(request,uidb64,token):
             return redirect(reverse('login'))
     return render(request,'user/fail.html',{"user":user})
 
-def send_otp(user):
-        
-        otp = str(random.randint(100000, 999999))
-        user.otp_secret = otp
-        user.otp_created_at = timezone.now()
-       
 
-        # Send OTP via email
-        subject = 'Your One-Time Password'
-        message = f'Your OTP for login is: {otp}'
-        from_email = 'captainluffy7890@gmail.com'
-        to_email = user.email
-
-        send_mail(subject, message, from_email, [to_email])
 
         
-'''
+
 def trial(request):
     call_command('dbbackup')
     return HttpResponse('db created')
-'''
 
 class LearnerSignUpView(CreateView):
     model = Usercutsom
@@ -181,32 +166,87 @@ def delete_unverified_user(user_id):
                 print(f"An error occurred while deleting user {user_id}: {e}")     
 
 
- 
 
+def check_existing_sessions(request, user):
+    current_session_key = request.session.session_key if user.is_authenticated else None
+    existing_sessions = Session.objects.filter(
+        expire_date__gte=timezone.now(),
+        session_key__ne=current_session_key,
+        get_decoded__contains={'_auth_user_id': str(user.id)}
+    )
 
+    return existing_sessions.exists()
 def login_view(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
 
         # OTP authentication is not performed here
-
         user = authenticate(request, username=username, password=password)
-        if user is not None:
-            if user.is_learner and user.email_verified:
-                # Generate and send OTP via email
-                send_otp(user)
-                # Redirect to OTP entry page
-                return render(request, 'user/otp_send.html', {'user_id': user.id,'username': username, 'password': password})
-            elif user.is_lectuer:
-                login(request, user) 
-                return redirect('admin_dashboard')
-            else:
-                messages.error(request, "Invalid user role.")
+        
+        #existing_sessions = None  # Initialize existing_sessions here
+
+        if user is None:
+            try:
+                # Check if the provided username corresponds to a social account's email
+                social_account = SocialAccount.objects.get(user__username=username)
+                user = social_account.user
+
+                # Log in the user and redirect
+                login(request, user)
+                user.is_logged_in = True
+                user.save()
+                return redirect('user_dashboard')
+
+            except SocialAccount.DoesNotExist:
+                messages.error(request, "Invalid credentials.")
+                return render(request, 'user/login.html')
+
+        if user.is_learner and user.email_verified:
+            # Check if the user is already logged in somewhere else
+            if user.is_logged_in:
+                user.is_logged_in=False
+                user.save()
+                messages.error(request, "User is using somewhere and that's wny auto logout")
+                #user.is_logged_in=False
+                #user.save()
+                messages.error(request, "That's why make it log out")
+                return render(request, 'user/login.html')
+            # Generate and send OTP via email
+            send_otp(user)
+            #user.is_logged_in = True
+            # Redirect to OTP entry page
+            return render(request, 'user/otp_send.html', {'user_id': user.id, 'username': username, 'password': password})
+        elif user.is_lectuer :
+            if user.is_logged_in:
+                messages.error(request, "User is already logged in elsewhere.")
+                return render(request, 'user/login.html')
+            login(request, user)
+
+            user.is_logged_in=True
+            user.save()
+            return redirect('admin_dashboard')
         else:
-            messages.error(request, "Invalid credentials.")
+            messages.error(request, "Something is wrong with your input and check again")
+            return render(request, 'user/login.html')
 
     return render(request, 'user/login.html')
+
+
+def send_otp(user):
+        
+        otp = str(random.randint(100000, 999999))
+        user.otp_secret = otp
+        user.otp_created_at = timezone.now()
+        user.save()
+        
+        # Send OTP via email
+        subject = 'Your One-Time Password'
+        message = f'Your OTP for login is: {otp}'
+        from_email = 'captainluffy7890@gmail.com'
+        to_email = user.email
+        
+        send_mail(subject, message, from_email, [to_email])
 
 
 def verify_otp(request):
@@ -215,19 +255,24 @@ def verify_otp(request):
         entered_otp = request.POST['otp']
         username = request.POST['username']
         password = request.POST['password']
-
+    
         user = authenticate(request, username=username, password=password, otp=entered_otp)
         if user is not None:
-            # Save the OTP to the database only when the user enters it
-              # Mark OTP as used
-            user.save()
-
-            # Authenticate the user with OTP
-            login(request, user)
-            return redirect('user_dashboard')
+            if user.otp_secret and user.otp_secret == entered_otp and (timezone.now() - user.otp_created_at).seconds < 300:
+  # 5 minutes in seconds
+                # Mark OTP as used
+                user.is_logged_in = True
+                user.save()
+                # Authenticate the user with OTP
+                login(request, user)
+                return redirect('learner_profile')
+            else:
+                messages.error(request, 'Invalid OTP or OTP has expired.')
+                return redirect('login')
         else:
-            messages.error(request, 'Invalid OTP or OTP has expired.')
+            messages.error(request, 'Invalid credentials')
             return redirect('login')
+
 
     return redirect('login')
 
@@ -237,12 +282,22 @@ def logoutView(request):
     if request.user.is_authenticated:
         user = Usercutsom.objects.get(id=request.user.id)
         user.otp_secret = None
+        
+        
+    # Set the is_logged_in attribute to False
+    
+        user.is_logged_in = False
         user.save()
+
+    # Perform Django's logout
+    
     logout(request)
     return redirect('1learn1cert-home')
 
 def is_admin(user):
-    return user.is_authenticated and user.is_lectuer
+    result = user.is_authenticated and user.is_lectuer
+    print(f'is_admin result for user {user}: {result}')
+    return result
 def is_user(user):
     return user.is_authenticated 
 
@@ -282,6 +337,7 @@ class AdminLeaner(CreateView):
 
         return redirect('addlearner')
     
+
 class AdminSignUpView(CreateView):
     model = User
     form_class = AdminSignUpForm
@@ -296,7 +352,7 @@ class AdminSignUpView(CreateView):
         messages.success(self.request,'Instructor was added successful')
 
         return redirect('addadmin')
-    
+  
 class AdminRegisterView(CreateView):
     model = User
     form_class = AdminSignUpForm
@@ -312,6 +368,12 @@ class AdminRegisterView(CreateView):
 
         return redirect('addadmin')
     
+def is_admin1(user):
+    result = user.is_authenticated and user.is_admin
+    print(f'is_admin result for user {user}: {result}')
+    return result
+
+#@user_passes_test(is_admin1)
 class ListUserView(LoginRequiredMixin, ListView):
     model = Usercutsom
     template_name = 'dashboard/user_list.html'
@@ -327,7 +389,13 @@ class ListUserView(LoginRequiredMixin, ListView):
             ).order_by('-id')
         else:
             return Usercutsom.objects.order_by('-id')
-    
+    def dispatch(self, request, *args, **kwargs):
+        if not is_admin(request.user):
+            messages.error(request, "You don't have permission to view this page.")
+            return redirect('login')
+        return super().dispatch(request, *args, **kwargs)
+        
+ 
 class ADeleteuser(SuccessMessageMixin, DeleteView):
     model = Usercutsom
     template_name = 'dashboard/delete_user.html'
@@ -343,7 +411,7 @@ class ADeleteuser(SuccessMessageMixin, DeleteView):
         messages.error(self.request, "You don't have permission to delete this user.")
         return super().handle_no_permission()
     
-
+@user_passes_test(is_admin)
 def admin_profile(request):
     current_user = request.user
 
@@ -355,14 +423,13 @@ def admin_profile(request):
     
     return render(request, 'dashboard/admin_profile.html')
 
- 
+@user_passes_test(is_user)
 def learner_profile(request):
     current_user = request.user
-    all_quiz_results = User_Answer.objects.filter(user=request.user)
+   
 
     # Use Python to filter out duplicate quizzes
-    unique_quizzes = set(result.question.quiz for result in all_quiz_results)
-
+   
     # Use Python to filter out duplicate quizzes
     
 
@@ -373,10 +440,11 @@ def learner_profile(request):
         user_profile = None
     
     return render(request, 'user_dashboard/learner_profile.html', {
-        'unique_quizzes': unique_quizzes,
-        'all_quiz_results': all_quiz_results,  # Pass all_quiz_results to the template
+     
         'user_profile': user_profile,
     })
+
+@user_passes_test(is_admin)
 def profile_update(request):
     if request.method=='POST' :
         u_form=Infoupdateform(request.POST,instance=request.user)
@@ -395,7 +463,26 @@ def profile_update(request):
     }
     return render(request, 'dashboard/admin_profile_edit.html',context)
 
+@user_passes_test(is_user)
+def profile_update_learner(request):
+    if request.method=='POST' :
+        u_form=Infoupdateform(request.POST,instance=request.user)
+        p_form=Profileupdateform(request.POST,request.FILES,instance=request.user.profile)
+        if u_form.is_valid() and p_form.is_valid():
+            u_form.save()
+            p_form.save()
+            messages.success(request,f'Your profile is updated')
+            return redirect('learner_profile')
+    else:
+        u_form=Infoupdateform(instance=request.user)
+        p_form=Profileupdateform(instance=request.user.profile)
+    context ={
+        'u_form': u_form,
+        'p_form' : p_form
+    }
+    return render(request, 'user_dashboard/learner_profile_edit.html',context)
 
+@user_passes_test(is_admin)
 def course(request):
     if request.method == 'POST':
         name = request.POST.get('name', '')
@@ -410,11 +497,11 @@ def course(request):
 
         return redirect('course')
 
-    # This part should be at the same indentation level as the first if statement
+    # This part should be at the same indentation lelvel as the first if statement
     courses = Course.objects.all()
     return render(request, 'dashboard/course.html', {'courses': courses})
    
-
+#@user_passes_test(is_admin)
 class QuizCreateView(CreateView):
     model = Quiz
     fields = ('name', 'course', 'level')
@@ -428,7 +515,13 @@ class QuizCreateView(CreateView):
         messages.success(self.request, 'Quiz created. Go ahead and add questions.')
         
         return redirect('create_quiz')
+    def dispatch(self, request, *args, **kwargs):
+        if not is_admin(request.user):
+            messages.error(request, "You don't have permission to view this page.")
+            return redirect('login')
+        return super().dispatch(request, *args, **kwargs)
     
+@user_passes_test(is_admin) 
 def choose_quiz(request):
 
     quizzes = Quiz.objects.filter(owner=request.user)
@@ -444,6 +537,7 @@ def delete_quiz(request, quiz_pk):
 
     return render(request, 'dashboard/delete_quiz.html', {'quiz': quiz})
 
+@user_passes_test(is_admin)
 def create_question(request, quiz_pk):
     quiz = get_object_or_404(Quiz, pk=quiz_pk, owner=request.user)
 
@@ -468,7 +562,7 @@ def create_question(request, quiz_pk):
 
 
    
-
+@user_passes_test(is_admin)
 def delete_question(request, quiz_pk, question_pk):
     quiz = get_object_or_404(Quiz, pk=quiz_pk, owner=request.user)
     question = get_object_or_404(Question, pk=question_pk, quiz=quiz)
@@ -479,6 +573,7 @@ def delete_question(request, quiz_pk, question_pk):
 
     return render(request, 'dashboard/add_question.html', {'quiz': quiz, 'question': question})
 
+@user_passes_test(is_admin)
 def delete_question_confirm(request, quiz_pk, question_pk):
     quiz = get_object_or_404(Quiz, pk=quiz_pk, owner=request.user)
     question = get_object_or_404(Question, pk=question_pk, quiz=quiz)
@@ -491,7 +586,7 @@ def delete_question_confirm(request, quiz_pk, question_pk):
 
     return render(request, 'dashboard/delete_question_confirm.html', {'quiz': quiz, 'question': question})
 
-
+@user_passes_test(is_admin)
 def edit_question1(request, quiz_pk, question_pk):
     quiz = get_object_or_404(Quiz, pk=quiz_pk, owner=request.user)
     question = get_object_or_404(Question, pk=question_pk, quiz=quiz)
@@ -507,7 +602,7 @@ def edit_question1(request, quiz_pk, question_pk):
 
     return render(request, 'dashboard/edit_question.html', {'quiz': quiz, 'question': question, 'form': form})
 
-
+@user_passes_test(is_admin)
 def edit_answer(request, quiz_pk, question_pk, answer_pk):
     quiz = get_object_or_404(Quiz, pk=quiz_pk, owner=request.user)
     question = get_object_or_404(Question, pk=question_pk, quiz=quiz)
@@ -524,6 +619,7 @@ def edit_answer(request, quiz_pk, question_pk, answer_pk):
 
     return render(request, 'dashboard/edit_answer.html', {'quiz': quiz, 'question': question, 'form': form})
 
+@user_passes_test(is_admin)
 def edit_question(request, quiz_pk, question_pk):
     quiz = get_object_or_404(Quiz, pk=quiz_pk, owner=request.user)
     question = get_object_or_404(Question, pk=question_pk, quiz=quiz)
@@ -539,7 +635,7 @@ def edit_question(request, quiz_pk, question_pk):
 
     return render(request, 'dashboard/edit_question.html', {'quiz': quiz, 'form': form, 'question': question})
 
-
+@user_passes_test(is_user)
 def home_learner(request):
     learner = User.objects.filter(is_learner=True).count()
    
@@ -550,7 +646,7 @@ def home_learner(request):
 
     return render(request, 'dashboard/learner_home.html', context)
 
-
+@user_passes_test(is_user)
 def quiz_list(request):
     courses = Course.objects.all()
     quizzes = Quiz.objects.all()
@@ -560,25 +656,43 @@ def quiz_list(request):
     return render(request, 'user_dashboard/quiz_list.html', {'courses': courses, 'quizzes': quizzes,'selected_level': level_filter})
 
    
-
+@user_passes_test(is_user)
 def quiz_start(request, quiz_id):
     quiz = get_object_or_404(Quiz, id=quiz_id)
     
     # Convert queryset to a list before shuffling
     questions = list(quiz.questions.all())
     random.shuffle(questions)
-
+    attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz).order_by('-attempt_number')
+    
+    if attempts.exists():
+        attempt = attempts[0]
+    else:
+        # If no attempts exist, create a new one
+        attempt = QuizAttempt.objects.create(user=request.user, quiz=quiz, attempt_number=1)
+    attempt.attempt_number += 1
+    attempt.save()
     # Store the shuffled list of questions in the session
     request.session['shuffled_questions'] = [question.id for question in questions]
     request.session['quiz_start_time'] = time.time()
     # Remove previous answers for this quiz
-    User_Answer.objects.filter(user=request.user, question__quiz=quiz).delete()
+    #User_Answer.objects.filter(user=request.user, question__quiz=quiz).delete()
     request.session['quiz_time_limit'] = 180  # 30 minutes
     request.session['remaining_time'] = request.session['quiz_time_limit']
+    if request.method == 'POST' and 'bookmark' in request.POST:
+        user_answer_id = request.POST.get('user_answer_id')
+        try:
+            user_answer = User_Answer.objects.get(id=user_answer_id)
+            bookmarked = request.POST.get('bookmark') == 'on'
+            user_answer.is_bookmarked = bookmarked
+            user_answer.save()
+        except User_Answer.DoesNotExist:
+            # Handle the case where the user_answer is not found
+            pass
+       
+    return render(request, 'user_dashboard/quiz_start.html', {'quiz': quiz, 'questions': questions})
 
-    return render(request, 'user_dashboard/quiz_start.html', {'quiz': quiz, 'questions': questions})\
-
-
+@user_passes_test(is_user)
 def question_detail(request, quiz_id, question_id):
     quiz = get_object_or_404(Quiz, id=quiz_id)
     question = get_object_or_404(Question, id=question_id)
@@ -612,8 +726,10 @@ def question_detail(request, quiz_id, question_id):
         chosen_answer_id = request.POST.get('chosen_answer')
         chosen_answer = get_object_or_404(Answer, id=chosen_answer_id)
 
+        attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz).aggregate(Max('attempt_number'))['attempt_number__max'] or 1
+
         # Save the user's answer
-        User_Answer.objects.create(user=request.user, question=question, chosen_answer=chosen_answer)
+        user_answer=User_Answer.objects.create(user=request.user, question=question, chosen_answer=chosen_answer,attempt_number=attempt)
 
         # Get the index of the current question in the shuffled list
         current_question_index = shuffled_question_ids.index(question.id)
@@ -623,7 +739,9 @@ def question_detail(request, quiz_id, question_id):
         next_question_id = shuffled_question_ids[next_question_index] if next_question_index < len(shuffled_question_ids) else None
         #next_question_id = shuffled_question_ids.pop(0) if shuffled_question_ids else None
 
-       
+        bookmarked = request.POST.get('bookmark') == 'on'
+        user_answer.is_bookmarked = bookmarked
+        user_answer.save()
        
         if next_question_id:
             request.session['remaining_time'] = remaining_time
@@ -636,59 +754,95 @@ def question_detail(request, quiz_id, question_id):
 
     return render(request, 'user_dashboard/question_detail.html', {'quiz': quiz, 'question': question, 'answers': answers,'remaining_minutes': remaining_minutes, 'remaining_seconds': remaining_seconds})
 
-
+@user_passes_test(is_user)
 def quiz_results(request, quiz_id):
-    quiz = get_object_or_404(Quiz, id=quiz_id)
-    questions = quiz.questions.all()
+        quiz = get_object_or_404(Quiz, id=quiz_id)
+        questions = quiz.questions.all()
 
     # Retrieve user's answers for the quiz
-    user_answers = User_Answer.objects.filter(user=request.user, question__quiz=quiz)
+    #attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz).latest('attempt_number')
+        
+        attempt_number = QuizAttempt.objects.filter(user=request.user, quiz=quiz).aggregate(Max('attempt_number'))['attempt_number__max'] or 1
+        attempt = QuizAttempt.objects.get(user=request.user, quiz=quiz, attempt_number=attempt_number)
+        previous_attempts = QuizAttempt.objects.filter(user=request.user,quiz=quiz,attempt_number=attempt_number)
+        print(previous_attempts)
+        
 
+    # Update the attempt's data based on the user's answers
+        
+    # Retrieve the UserAnswers for the current attempt
+        user_answers = User_Answer.objects.filter(user=request.user,question__quiz=quiz, attempt_number=attempt.attempt_number)
+        total_mark = len(questions) # Each question is worth 1 mark
+        user_score = 0
+        incorrect_answers = []
+
+        for question in questions:
+            user_answer = user_answers.filter(question=question).first()
+
+            # Check if the user's answer is correct
+            if user_answer and user_answer.chosen_answer.is_correct:
+                user_score += 1
+                #user_answer.user_mark +=1
+                
+
+            # Add incorrect answer details to the list
+            elif user_answer:
+                incorrect_answers.append({
+                    'question': question,
+                    'user_answer': user_answer.chosen_answer,
+                    'correct_answer': question.answers.filter(is_correct=True).first(),
+                })
+        
+        # Calculate the user's mark after checking correctness
+        
+        if total_mark > 0:
+            user_mark = user_score
+        else:
+            user_mark = 0
+        
+        # Save the updated user marks in the UserAnswer model
+        for user_answer in user_answers:
+            user_answer.user_mark = user_mark
+            user_answer.total_mark = total_mark
+            user_answer.save()
+
+        for previous_attempts in previous_attempts:
+            previous_attempts.score=user_score
+
+            previous_attempts.total_questions = len(questions)
+            
+            previous_attempts.save()
+
+        # Calculate the percentage score
+        
+
+        return render(request, 'user_dashboard/quiz_results.html', {
+            'quiz': quiz,
+            'total_mark': total_mark,
+            'user_score': user_score,
+            
+            'user_mark': user_mark,
+            'incorrect_answers': incorrect_answers,
+            'previous_attempts': previous_attempts,
+           
+        })
+
+    
     # Calculate the user's score and total mark
-    total_mark = len(questions)  # Each question is worth 1 mark
-    user_score = 0
-    incorrect_answers = []
+@user_passes_test(is_user)
+def bookmarked_questions(request):
+    # Retrieve bookmarked questions for the current user
+    bookmarked_questions = User_Answer.objects.filter(user=request.user,is_bookmarked=True)
 
-    for question in questions:
-        user_answer = user_answers.filter(question=question).first()
+    return render(request, 'user_dashboard/bookmark_questions.html', {'bookmarked_questions': bookmarked_questions}) 
 
-        # Check if the user's answer is correct
-        if user_answer and user_answer.chosen_answer.is_correct:
-            user_score += 1
+@user_passes_test(is_user)
+def delete_bookmark(request, question_id):
+    question = get_object_or_404(Question, id=question_id)
+    User_Answer.objects.filter(user=request.user, question=question).update(is_bookmarked=False)
+    return redirect('bookmarked_questions')    
 
-        # Add incorrect answer details to the list
-        elif user_answer:
-            incorrect_answers.append({
-                'question': question,
-                'user_answer': user_answer.chosen_answer,
-                'correct_answer': question.answers.filter(is_correct=True).first(),
-            })
-
-    # Calculate the user's mark after checking correctness
-    if total_mark > 0:
-        user_mark = (user_score / total_mark) * 100
-    else:
-        user_mark = 0
-
-    # Save the updated user marks in the UserAnswer model
-    for user_answer in user_answers:
-        user_answer.user_mark = user_mark
-        user_answer.save()
-
-    # Calculate the percentage score
-    if total_mark > 0:
-        percentage_score = (user_score / total_mark) * 100
-    else:
-        percentage_score = 0
-
-    return render(request, 'user_dashboard/quiz_results.html', {
-        'quiz': quiz,
-        'total_mark': total_mark,
-        'user_score': user_score,
-        'percentage_score': percentage_score,
-        'user_mark': user_mark,
-        'incorrect_answers': incorrect_answers,
-    })
+@user_passes_test(is_user)
 def retake_quiz(request, quiz_id):
     quiz = get_object_or_404(Quiz, id=quiz_id)
 
@@ -698,3 +852,82 @@ def retake_quiz(request, quiz_id):
     # Redirect to the first question of the quiz
     first_question = quiz.questions.first()
     return redirect('question_detail', quiz_id=quiz.id, question_id=first_question.id)
+
+
+def reset_confirm(request,token):
+    context={ }
+    try:
+        # Use filter() instead of get() to handle the case where the token is not found
+        user_obj = Usercutsom.objects.filter(token=token).first()
+
+        if not user_obj or not user_obj.created_token:
+            messages.error(request, 'Invalid or expired reset link.')
+            return redirect('login')
+        
+        expiration_time = user_obj.created_token+ timezone.timedelta(minutes=5)
+        if timezone.now() > expiration_time:
+            messages.error(request, 'The reset link has expired.')
+            return redirect('login')
+        
+        if request.method == 'POST':
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('reconfirm_password')
+
+            if new_password != confirm_password:
+                messages.error(request, 'Passwords do not match.')
+                return redirect(f'/change-password/{token}/')
+
+            # Use user_obj.id directly to get the user ID
+            user_id = user_obj.id
+
+            # Update the user's password
+            user_obj.set_password(new_password)
+            user_obj.save()
+
+            messages.success(request, 'Password reset successfully.')
+            return redirect('login')
+
+        context = {'user_id': user_obj.id}
+    except Exception as e:
+        print(e)
+    return render(request,'user/reset_confirm.html')
+
+def send_password(email,token):
+    
+    subject = 'Your reset password link'
+    message = f'Hi, click on the link to reset your password http://127.0.0.1:8000/reset/{token}/'
+    email_from = settings.EMAIL_HOST_USER
+    receipent_list = [email]
+    
+    
+    email = EmailMessage(subject=subject, body=message, to=receipent_list, from_email=email_from)
+    email.send() 
+    
+    return True
+
+@login_required
+def password(request):
+    try:
+        if request.method=='POST':
+            username=request.POST.get('username')
+            user_obj = Usercutsom.objects.filter(username=username).first()
+
+            if not user_obj:
+                messages.error(request, 'No user found')
+                return redirect('login')
+
+            token = str(uuid.uuid4())
+            user_obj.token = token
+            user_obj.created_token= timezone.now()
+            user_obj.save()
+
+            send_password(user_obj.email, token)
+            messages.success(request, 'An email is sent.')
+            return redirect('password')
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        messages.error(request, 'An error occurred while processing the request.')
+    return render(request , 'user/password_reset_email.html')
+    
+
+   

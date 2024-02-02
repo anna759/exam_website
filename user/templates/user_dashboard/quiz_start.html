@@ -62,6 +62,9 @@
             </label><br>
         {% endfor %}
         <button id="next-button" data-next-question-id="{{ next_question_id }}">Next</button>
+        <input type="checkbox" name="bookmark" {% if user_answer and user_answer.bookmarked %}checked{% endif %}>
+        <label for="bookmark">Bookmark this question</label>
+
     </form>
 {% else %}
     <p>No questions available for this quiz.</p>

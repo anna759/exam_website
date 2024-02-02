@@ -22,6 +22,18 @@
                     <h5>User Mark:</h5>
                     <p>{{ user_mark }} / {{ total_mark }}</p>
                 </div>
+               <div class="col-md-6">
+               
+                    <h2>Previous Attempts</h2>
+                    {% if previous_attempts %}
+                            <div>
+                                Attempt {{ previous_attempts }}:
+                            </div>
+                           
+                            Score Total :{{ previous_attempts.score }}
+                        
+                    {% endif %}
+               </div>
             </div>
 
             {% if incorrect_answers %}
@@ -39,6 +51,7 @@
                 </div>
             {% endfor %}
             {% endif %}
+       
             <div class="card-footer">
                 <a href="{% url 'retake_quiz' quiz.id %}" class="btn btn-primary">Retake Quiz</a>
                 <a href="{% url 'learner_profile' %}" class="btn btn-primary">End</a>

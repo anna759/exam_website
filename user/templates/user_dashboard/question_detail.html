@@ -56,5 +56,9 @@
             </label><br>
         {% endfor %}
         <button type="submit">Next</button>
+        <input type="checkbox" name="bookmark" {% if user_answer and user_answer.bookmarked %}checked{% endif %}>
+        <label for="bookmark">Bookmark this question</label>
+
+        <button type="submit">Next</button>
     </form>
 {% endblock content %}

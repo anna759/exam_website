@@ -7,7 +7,9 @@ class UserConfig(AppConfig):
 
     def ready(self):
         import user.signals
-        #from .scheduler import scheduler
+        from user.task import BackupDatabase
+        backup_task = BackupDatabase()
+        backup_task.do()
         #scheduler.start()
 
 

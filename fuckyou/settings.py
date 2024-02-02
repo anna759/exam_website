@@ -49,15 +49,23 @@ INSTALLED_APPS = [
     'learner',
     'django_otp',
     'django_otp.plugins.otp_totp',
-    "django_apscheduler",
+    
     'dbbackup', 
-
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'django.contrib.sites',
+     'django_cron',
+    
     
     
     
 ]
 # settings.py
-
+CRON_CLASSES = [
+    'user.task.BackupDatabase',
+]
 
 
 AUTH_USER_MODEL = 'user.Usercutsom'
@@ -69,8 +77,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     
+    'allauth.account.middleware.AccountMiddleware',
+
 ]
 
 ROOT_URLCONF = 'fuckyou.urls'
@@ -92,7 +101,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'fuckyou.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -141,6 +149,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
 DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
@@ -176,6 +185,20 @@ EMAIL_HOST_PASSWORD = 'qhqg hpit hhvj zjiu'
 AUTHENTICATION_BACKENDS = [
     'user.backend.CustomAuthBackend',
     'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+
 ]
 
-django_heroku.settings(locals())
+SITE_ID = 1
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['email'],
+        'APP': {
+            'client_id': '243664831717-95pgor1006eu73198iuuvokhd3bo62mt.apps.googleusercontent.com',
+            'secret': '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',
+        }
+    }
+}
+  # or 'django.contrib.sessions.backends.cached_db'
+LOGIN_REDIRECT_URL = 'login'
+SOCIALACCOUNT_ADAPTER = 'user.adaptor.CustomSocialAccountAdapter'

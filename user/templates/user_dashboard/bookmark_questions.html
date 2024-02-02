@@ -1,0 +1,52 @@
+{% extends "user_dashboard/index4.html" %}
+
+
+{% block content %}
+    <div class="container mt-5">
+        <h2 class="mb-4">Bookmarked Questions:</h2>
+        {% if bookmarked_questions %}
+            <ul class="list-group">
+                {% for bookmarked_question in bookmarked_questions %}
+                    <li class="list-group-item">
+                        <p class="mb-1">{{ bookmarked_question.question.text }}</p>
+                        <p class="text-muted">Attempt: {{ bookmarked_question.attempt_number }}</p>
+                        
+                        
+                        <p>Correct Answer: 
+                            {% for answer in bookmarked_question.question.answers.all %}
+                                {% if answer.is_correct %}
+                                    {{ answer.text }}
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                        <p>
+                            {% if bookmarked_question.user_mark is not None %}
+                            <p class="mt-2">
+                                Your total Mark for Attempt {{ bookmarked_question.attempt_number }} : <strong>{{ bookmarked_question.user_mark }} / {{ bookmarked_question.total_mark }}</strong>
+                            </p>
+                        {% endif %}
+                        </p>
+                        <ul class="list-group">
+                            {% for answer in bookmarked_question.question.answers.all %}
+                                <li class="list-group-item {% if answer == bookmarked_question.chosen_answer %}active{% endif %}">
+                                    {% if answer == bookmarked_question.chosen_answer %}
+                                        <strong>{{ answer.text }}</strong> (Your chosen answer)
+                                    {% else %}
+                                        {{ answer.text }}
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+			           
+                        <form method="post" action="{% url 'delete_bookmark' question_id=bookmarked_question.question.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Delete Bookmark</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No bookmarked questions.</p>
+        {% endif %}
+    </div>
+{% endblock %}
